@@ -1,8 +1,24 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moodle.Application.Services;
+using Moodle.Infrastructure.Persistence;
 using Moodle.Infrastructure.Repositories;
 
 var userRepository = new TestUserRepository();
 var authService = new AuthentificationService(userRepository);
+
+var services = new ServiceCollection();
+
+services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql("Host=localhost;Port=5432;Database=MoodleDb;Username=postgres;Password=postgres;"));
+
+var serviceProvider = services.BuildServiceProvider();
+
+using var scope = serviceProvider.CreateScope();
+var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+context.Database.Migrate();
+DatabaseSeeder.Seed(context);
         
 while (true)
 {

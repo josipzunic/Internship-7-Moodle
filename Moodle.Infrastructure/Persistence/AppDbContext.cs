@@ -9,6 +9,8 @@ namespace Moodle.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext
 {
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+    
     public DbSet<User> Users { get; set; }
     public DbSet<Course> Courses { get; set; }
     public DbSet<Enrollement> Enrollments { get; set; }

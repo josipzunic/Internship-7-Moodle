@@ -21,10 +21,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.Role)
             .IsRequired();
         builder.Property(x => x.CreatedAt)
-            .HasColumnType("datetime")
             .IsRequired();
         builder.Property(x => x.UpdatedAt)
-            .HasColumnType("datetime")
             .IsRequired();
     }
 }
