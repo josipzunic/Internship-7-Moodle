@@ -18,8 +18,8 @@ public class AuthentificationService
         {
             Email = email,
             Role = Role.Student,
-            Created = DateTime.Now,
-            Updated = DateTime.Now
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
         
         user.SetPasswordHash(password);

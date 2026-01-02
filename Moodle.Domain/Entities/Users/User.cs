@@ -9,8 +9,8 @@ public class User
     public string Email { get; set; } = null!;
     public string PasswordHash { get; set; } = null!;
     public Role Role { get; set; }
-    public DateTime Created { get; set; }
-    public DateTime Updated { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
     
     public void SetPasswordHash(string password)
     {
