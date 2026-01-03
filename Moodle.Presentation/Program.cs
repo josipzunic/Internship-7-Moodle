@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moodle.Application.Interfaces;
-using Moodle.Application.Services;
 using Moodle.Infrastructure.Persistence;
 using Moodle.Infrastructure.Repositories;
 

@@ -1,5 +1,4 @@
 using Moodle.Application.Interfaces;
-using Moodle.Application.Services;
 using Moodle.Domain.Entities;
 using Moodle.Domain.Enums;
 
@@ -34,8 +33,16 @@ public class MenuActions
 
         Console.Write("Lozinka: ");
         var password = Console.ReadLine()!;
+        
+        Console.Write("Ponovite lozinku: ");
+        var repeeatPassword = Console.ReadLine()!;
 
-        var result = await _authService.RegisterUserAsync(email, password);
+        var generateCaptcha = _authService.GenerateCaptcha();
+        Console.WriteLine("Captcha: " + generateCaptcha);
+        Console.Write("Ponovite: ");
+        var enterCaptcha = Console.ReadLine()!;
+
+        var result = await _authService.RegisterUserAsync(email, password, repeeatPassword, enterCaptcha, generateCaptcha);
         Console.WriteLine($"\n{result.ValidationMessage}");
     }
 
@@ -59,6 +66,12 @@ public class MenuActions
         else
         {
             Console.WriteLine($"\n{result.ValidationMessage}");
+            Console.Write("Anti bot timeout 30 sekundi: ");
+            for (int i = 30; i > 0; i--)
+            {
+                Console.WriteLine($"Timeout: {i}");
+                await Task.Delay(1000);
+            }
         }
     }
 

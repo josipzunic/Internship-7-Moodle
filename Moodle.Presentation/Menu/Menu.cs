@@ -34,6 +34,8 @@ public class Menu
 
             if (!int.TryParse(Console.ReadLine(), out int choice))
             {
+                Console.WriteLine("Unos mora biti brojčan");
+                await Task.Delay(1000);
                 continue;
             }
 

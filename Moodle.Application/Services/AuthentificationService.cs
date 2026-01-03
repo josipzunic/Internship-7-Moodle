@@ -5,26 +5,56 @@ using Moodle.Application.Interfaces;
 using Moodle.Domain.Entities;
 using Moodle.Domain.Enums;
 
-namespace Moodle.Application.Services;
-
 public class AuthentificationService
 {
     private readonly IUserRepository _userRepository;
     public const int MinPasswordLength = 8;
-    
-    public AuthentificationService(IUserRepository userRepository) => _userRepository = userRepository;
 
-    public async Task<Result<bool>> RegisterUserAsync(string email, string password)
+    public AuthentificationService(IUserRepository userRepository)
+        => _userRepository = userRepository;
+    
+    public async Task<Result<bool>> RegisterUserAsync(
+        string email,
+        string password,
+        string confirmPassword,
+        string captchaInput,
+        string captchaExpected)
     {
-        var existingUser = await _userRepository.GetUserByEmailAsync(email);
         var validationResult = new Result<bool>();
         var validationItem = new ValidationItem();
-
+        
+        if (captchaInput != captchaExpected)
+        {
+            RetrieveValidationData(validationItem, ValidationItems.User.InvalidCaptcha);
+            SetValidationResult(validationResult, validationItem, false);
+            return validationResult;
+        }
+        
+        if (!ValidateEmailFormat(email))
+        {
+            RetrieveValidationData(validationItem, ValidationItems.User.InvalidEmailFormat);
+            SetValidationResult(validationResult, validationItem, false);
+            return validationResult;
+        }
+        
+        var existingUser = await _userRepository.GetUserByEmailAsync(email);
         if (existingUser != null)
         {
             RetrieveValidationData(validationItem, ValidationItems.User.ExistingUser);
             SetValidationResult(validationResult, validationItem, false);
+            return validationResult;
         }
+        
+        if (password != confirmPassword)
+        {
+            RetrieveValidationData(validationItem, ValidationItems.User.PasswordsDoNotMatch);
+            SetValidationResult(validationResult, validationItem, false);
+            return validationResult;
+        }
+        
+        var validatePassword = ValidatePassword(password);
+        if (!validatePassword.Value)
+            return validatePassword;
 
         var user = new User
         {
@@ -33,14 +63,7 @@ public class AuthentificationService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        
-        var validatePassword = ValidatePassword(password);
 
-        if (!validatePassword.Value)
-        {
-            return validatePassword;
-        }
-        
         user.SetPasswordHash(password);
         await _userRepository.AddUserAsync(user);
 
@@ -52,17 +75,17 @@ public class AuthentificationService
             Value = true
         };
     }
-
+    
     public async Task<Result<User>> LoginUserAsync(string email, string password)
     {
         var user = await _userRepository.GetUserByEmailAsync(email);
         var validationResult = new Result<User>();
-        var  validationItem = new ValidationItem();
+        var validationItem = new ValidationItem();
 
         if (user == null)
         {
             RetrieveValidationData(validationItem, ValidationItems.User.NonExistingUser);
-            SetValidationResult<User>(validationResult, validationItem, null);
+            SetValidationResult(validationResult, validationItem, null);
             return validationResult;
         }
 
@@ -72,7 +95,7 @@ public class AuthentificationService
             SetValidationResult(validationResult, validationItem, null);
             return validationResult;
         }
-        
+
         return new Result<User>
         {
             ValidationSeverity = ValidationSeverity.Info,
@@ -81,23 +104,71 @@ public class AuthentificationService
             Value = user
         };
     }
+
+    
+    private bool ValidateEmailFormat(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        var parts = email.Split('@');
+        if (parts.Length != 2)
+            return false;
+
+        if (parts[0].Length < 1)
+            return false;
+
+        var domainParts = parts[1].Split('.');
+        if (domainParts.Length != 2)
+            return false;
+
+        if (domainParts[0].Length < 2)
+            return false;
+
+        if (domainParts[1].Length < 3)
+            return false;
+
+        return true;
+    }
+
+    
+    public string GenerateCaptcha(int length = 6)
+    {
+        const string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        const string digits = "0123456789";
+        const string all = letters + digits;
+
+        var random = new Random();
+        var chars = new List<char>
+        {
+            letters[random.Next(letters.Length)],
+            digits[random.Next(digits.Length)]
+        };
+
+        for (int i = 2; i < length; i++)
+            chars.Add(all[random.Next(all.Length)]);
+
+        return new string(chars.OrderBy(_ => random.Next()).ToArray());
+    }
+
     
     public Result<bool> ValidatePassword(string password)
     {
-        List<char> specialSymbols = new List<char>
+        List<char> specialSymbols = new()
         {
             '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
             '-', '_', '+', '=', '{', '}', '[', ']', '|', '\\',
             ':', ';', '"', '\'', '<', '>', ',', '.', '?', '/'
         };
-        List<char> digits = new List<char>
+
+        List<char> digits = new()
         {
-            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+            '0','1','2','3','4','5','6','7','8','9'
         };
 
         var validationResult = new Result<bool>();
         var validationItem = new ValidationItem();
-        
+
         if (string.IsNullOrEmpty(password))
         {
             RetrieveValidationData(validationItem, ValidationItems.User.PasswordRequired);
@@ -135,6 +206,7 @@ public class AuthentificationService
         };
     }
 
+    
     public void RetrieveValidationData(ValidationItem validationItem, ValidationItem sourceItem)
     {
         validationItem.Message = sourceItem.Message;

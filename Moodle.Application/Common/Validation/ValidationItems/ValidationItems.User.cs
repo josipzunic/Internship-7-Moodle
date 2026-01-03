@@ -2,7 +2,6 @@
 
 using Moodle.Application.Common.Validation;
 using Moodle.Application.Enums;
-using Moodle.Application.Services;
 
 public static partial class ValidationItems
 {
@@ -62,6 +61,30 @@ public static partial class ValidationItems
         {
             Code = $"{CodePrefix}7",
             Message = "Netočno korisničko ime ili lozinka",
+            ValidationSeverity = ValidationSeverity.Error,
+            ValidationType = ValidationType.BusinessRule
+        };
+
+        public static readonly ValidationItem InvalidEmailFormat = new()
+        {
+            Code = $"{CodePrefix}8",
+            Message = "Netočan email format",
+            ValidationSeverity = ValidationSeverity.Error,
+            ValidationType = ValidationType.BusinessRule
+        };
+
+        public static readonly ValidationItem PasswordsDoNotMatch = new()
+        {
+            Code = $"{CodePrefix}9",
+            Message = "Lozinke se ne podudaraju",
+            ValidationSeverity = ValidationSeverity.Error,
+            ValidationType = ValidationType.BusinessRule
+        };
+
+        public static readonly ValidationItem InvalidCaptcha = new()
+        {
+            Code = $"{CodePrefix}10",
+            Message = "Greška u captchi",
             ValidationSeverity = ValidationSeverity.Error,
             ValidationType = ValidationType.BusinessRule
         };
