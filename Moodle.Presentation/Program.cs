@@ -1,24 +1,31 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moodle.Application.Interfaces;
 using Moodle.Application.Services;
 using Moodle.Infrastructure.Persistence;
 using Moodle.Infrastructure.Repositories;
 
-var userRepository = new TestUserRepository();
-var authService = new AuthentificationService(userRepository);
-
 var services = new ServiceCollection();
 
 services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql("Host=localhost;Port=5432;Database=MoodleDb;Username=postgres;Password=postgres;"));
+    options.UseNpgsql(
+        "Host=localhost;Port=5432;Database=MoodleDb;Username=postgres;Password=postgres;"
+    ));
+
+services.AddScoped<IUserRepository, UserRepository>();
+
+services.AddScoped<AuthentificationService>();
 
 var serviceProvider = services.BuildServiceProvider();
 
-using var scope = serviceProvider.CreateScope();
-var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+using (var scope = serviceProvider.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.Migrate();
+    DatabaseSeeder.Seed(context);
+}
 
-context.Database.Migrate();
-DatabaseSeeder.Seed(context);
+var authService = serviceProvider.GetRequiredService<AuthentificationService>();
         
 while (true)
 {
@@ -37,8 +44,8 @@ while (true)
         Console.Write("Password: ");
         var password = Console.ReadLine()!;
 
-        var success = authService.RegisterUser(email, password);
-        Console.WriteLine(success ? "Registered!" : "User already exists.");
+        var success = await authService.RegisterUserAsync(email, password);
+        Console.WriteLine($"{success.Value}, {success.ValidationMessage}");
     }
     else if (choice == "2")
     {
@@ -48,8 +55,8 @@ while (true)
         Console.Write("Password: ");
         var password = Console.ReadLine()!;
 
-        var user = authService.LoginUser(email, password);
-        Console.WriteLine(user != null ? $"Welcome {user.Email}" : "Invalid credentials");
+        var user = await authService.LoginUserAsync(email, password);
+        if  (user.Value != null) Console.WriteLine($"{user.ValidationMessage}");
     }
     else if (choice == "0")
     {

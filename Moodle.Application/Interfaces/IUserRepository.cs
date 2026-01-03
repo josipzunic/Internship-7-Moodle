@@ -4,6 +4,6 @@ namespace Moodle.Application.Interfaces;
 
 public interface IUserRepository
 {
-    User?  GetUserByEmail(string email);
-    void AddUser(User user);
+    Task<User?>  GetUserByEmailAsync(string email);
+    Task AddUserAsync(User user);
 }
