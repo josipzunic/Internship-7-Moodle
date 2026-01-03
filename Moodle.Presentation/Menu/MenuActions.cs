@@ -270,7 +270,7 @@ public class MenuActions
                 subAdminMenu.AddItem($"{user.Email} -  {user.Role}", async () =>
                 {
                     await _adminRepository.DeleteUserAsync(user.Id);
-                    Console.WriteLine($"korisnik {user.Id} - {user.Email} -  {user.Role} uspješno izbrisan");
+                    Console.WriteLine($"korisnik {user.Id} - {user.Email} -  {user.Role} uspješno izbrisan iz baze");
                     await Task.CompletedTask;
                 });
             await subAdminMenu.RunAsync();
@@ -283,10 +283,13 @@ public class MenuActions
                 subAdminMenu.AddItem($"{user.Email} -  {user.Role}", async () =>
                 {
                     Console.Write("Unesite novu email adresu: ");
-                    var newEmail = Console.ReadLine();
-                    await _adminRepository.UpdateUserEmailAsync(user.Id,  newEmail);
-                    Console.WriteLine($"korisnik {user.Id} - {user.Email} -  {user.Role} uspješno izbrisan");
+                    var newEmail = Console.ReadLine()!;
+                    var success = await _adminRepository.UpdateUserEmailAsync(user.Id,  newEmail);
                     await Task.CompletedTask;
+                    if(success)
+                        Console.WriteLine($"korisnik {user.Id} - {user.Email} -  {user.Role} uspješno izmijenjen u bazi podataka");
+                    else
+                        Console.WriteLine("Korisnik nije izmijenjen");
                 });
             await subAdminMenu.RunAsync();
         });
@@ -298,7 +301,7 @@ public class MenuActions
                 subAdminMenu.AddItem($"{user.Email} -  {user.Role}", async () =>
                 {
                     await _adminRepository.UpdateUserRoleAsync(user.Id, user.Role);
-                    Console.WriteLine($"korisniku {user.Email} promijenjena je titula");
+                    Console.WriteLine($"korisniku {user.Email} promijenjena je titula u bazi podataka");
                     await Task.CompletedTask;
                 });
             await subAdminMenu.RunAsync();
