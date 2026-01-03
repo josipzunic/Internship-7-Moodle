@@ -6,13 +6,21 @@ using Moodle.Domain.Enums;
 public class MenuActions
 {
     private readonly AuthentificationService _authService;
-    private readonly ICourseRepository _courseRepository;
+    private readonly IUserCourseRepository _userCourseRepository;
+    private readonly IEnrollmentRepository _enrollmentRepository;
+    private readonly INotificationRepository _notificationRepository;
+    private readonly IMaterialRepository _materialRepository;
     private User? _currentUser;
 
-    public MenuActions(AuthentificationService authService, ICourseRepository courseRepository)
+    public MenuActions(AuthentificationService authService, IUserCourseRepository userCourseRepository,  
+        IEnrollmentRepository enrollmentRepository,  INotificationRepository notificationRepository,
+        IMaterialRepository materialRepository)
     {
         _authService = authService;
-        _courseRepository = courseRepository;
+        _userCourseRepository = userCourseRepository;
+        _enrollmentRepository = enrollmentRepository;
+        _notificationRepository = notificationRepository;
+        _materialRepository = materialRepository;
     }
 
     public async Task RegisterAsync()
@@ -65,12 +73,12 @@ public class MenuActions
                 dashboard.AddItem("Moji kolegiji", MyCoursesStudentAsync);
                 break;
             
-            /*case Role.Professor:
+            case Role.Professor:
                 dashboard.AddItem("Moji kolegiji", MyCoursesProfessorAsync);
                 dashboard.AddItem("Upravljanje kolegijima", ManageCoursesAsync);
                 break;
             
-            case Role.Admin:
+            /*case Role.Admin:
                 dashboard.AddItem("Upravljanje korisnicima", ManageUsersAsync);
                 break;*/
         }
@@ -103,8 +111,8 @@ public class MenuActions
     }
     private async Task MyCoursesStudentAsync()
     {
-        var coursesMenu = new Menu("=== Moji kolegiji (Student) ===");
-        var courses = await _courseRepository.GetCoursesAsync(_currentUser.Id);
+        var coursesMenu = new Menu("=== Moji kolegiji ===");
+        var courses = await _userCourseRepository.GetCoursesAsync(_currentUser.Id);
         foreach (var course in courses)
             coursesMenu.AddItem($"{course.CourseName}", async () =>
             {
@@ -122,5 +130,99 @@ public class MenuActions
         await coursesMenu.RunAsync();
     }
     
-    
+    private async Task MyCoursesProfessorAsync()
+    {
+        var coursesMenu = new Menu("=== Moji kolegiji ===");
+        var subCoursesMenu = new Menu("=== Moji kolegiji ===");
+        var courses = await _userCourseRepository.GetCoursesOverviewForProfessorAsync(_currentUser.Id);
+        foreach (var course in courses)
+            coursesMenu.AddItem($"{course.CourseName}", async () =>
+            {
+                subCoursesMenu.AddItem("Pregled studenata", async () =>
+                {
+                    if (course.Students.Count == 0) Console.WriteLine("Nema upisanih studenata");
+                    else
+                        foreach (var student in course.Students)
+                            Console.WriteLine($"{student.Email}");
+                    await Task.CompletedTask;
+                });
+                subCoursesMenu.AddItem("Obavijesti", async () =>
+                {
+                    if (course.Notifications.Count == 0) Console.WriteLine("Nema obavijesti");
+                    else
+                        foreach (var notification in course.Notifications)
+                            Console.WriteLine(
+                                $"{notification.CreatedAt} - {notification.Title}: {notification.Content}");
+                    await Task.CompletedTask;
+
+                });
+                subCoursesMenu.AddItem("Materijali", async () =>
+                {
+                    if (course.Materials.Count == 0) Console.WriteLine("Nema materijala");
+                    else
+                        foreach (var material in course.Materials)
+                            Console.WriteLine(
+                                $"{material.CreatedAt} - {material.Name} - {material.Url}");
+                    await Task.CompletedTask;
+                });
+                
+                await subCoursesMenu.RunAsync();
+                await Task.CompletedTask;
+            });
+
+        await coursesMenu.RunAsync();
+    }
+
+    private async Task ManageCoursesAsync()
+    {
+        var manageMenu = new Menu("=== Upravljanje kolegijima ===");
+        var subManageMenu = new Menu("=== Upravljanje kolegijima ===");
+        var addStudentToCourseMenu = new Menu("=== Dodavanje studenata ===");
+        var courses = await _userCourseRepository.GetCoursesOverviewForProfessorAsync(_currentUser.Id);
+        foreach (var course in courses)
+            manageMenu.AddItem($"{course.CourseName}", async () =>
+            {
+                subManageMenu.AddItem("Dodavanje studenta", async () =>
+                {
+                    var students = await _userCourseRepository.GetStudentsNotEnrolledInCourseAsync(course.CourseId);
+                    Console.WriteLine(students.Count);
+                    foreach (var student in students)
+                        addStudentToCourseMenu.AddItem($"{student.Email}", async () =>
+                        {
+                            await _enrollmentRepository.EnrollStudentAsync(student.Id, course.CourseId);
+                            Console.WriteLine("Student uspješno dodan");
+                            students.Remove(student);
+                            await Task.CompletedTask;
+                        });
+                    await addStudentToCourseMenu.RunAsync();
+                    await Task.CompletedTask;
+                });
+                subManageMenu.AddItem("Dodavanje obavijesti", async () =>
+                {
+                    Console.Write("Naslov: ");
+                    var title = Console.ReadLine();
+                    Console.WriteLine("Sadržaj: ");
+                    var content = Console.ReadLine();
+                    
+                    await _notificationRepository.AddNotificationAsync(title, content, course.CourseId, _currentUser.Id);
+                    await Task.CompletedTask;
+
+                });
+                subManageMenu.AddItem("Dodavanje materijala", async () =>
+                {
+                    Console.Write("Ime: ");
+                    var name = Console.ReadLine();
+                    Console.WriteLine("Url: ");
+                    var url = Console.ReadLine();
+                    
+                    await _materialRepository.AddMaterialAsync(name, url, course.CourseId, _currentUser.Id);
+                    await Task.CompletedTask;
+                });
+                
+                await subManageMenu.RunAsync();
+                await Task.CompletedTask;
+            });
+
+        await manageMenu.RunAsync();
+    }
 }
