@@ -10,17 +10,19 @@ public class MenuActions
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly INotificationRepository _notificationRepository;
     private readonly IMaterialRepository _materialRepository;
+    private readonly IPrivateChatRepository _privateChatRepository;
     private User? _currentUser;
 
     public MenuActions(AuthentificationService authService, IUserCourseRepository userCourseRepository,  
         IEnrollmentRepository enrollmentRepository,  INotificationRepository notificationRepository,
-        IMaterialRepository materialRepository)
+        IMaterialRepository materialRepository,  IPrivateChatRepository privateChatRepository)
     {
         _authService = authService;
         _userCourseRepository = userCourseRepository;
         _enrollmentRepository = enrollmentRepository;
         _notificationRepository = notificationRepository;
         _materialRepository = materialRepository;
+        _privateChatRepository = privateChatRepository;
     }
 
     public async Task RegisterAsync()
@@ -85,23 +87,6 @@ public class MenuActions
 
         await dashboard.RunAsync();
     }
-    private async Task PrivateChatAsync()
-    {
-        var chatMenu = new Menu("=== Privatni chat ===");
-        chatMenu.AddItem("Pregled poruka", async () => 
-        {
-            Console.WriteLine("Lista privatnih poruka...");
-            await Task.CompletedTask;
-        });
-        chatMenu.AddItem("Nova poruka", async () => 
-        {
-            Console.WriteLine("Slanje nove poruke...");
-            await Task.CompletedTask;
-        });
-
-        await chatMenu.RunAsync();
-    }
-
     private async Task LogoutAsync()
     {
         _currentUser = null;
@@ -133,11 +118,11 @@ public class MenuActions
     private async Task MyCoursesProfessorAsync()
     {
         var coursesMenu = new Menu("=== Moji kolegiji ===");
-        var subCoursesMenu = new Menu("=== Moji kolegiji ===");
         var courses = await _userCourseRepository.GetCoursesOverviewForProfessorAsync(_currentUser.Id);
         foreach (var course in courses)
             coursesMenu.AddItem($"{course.CourseName}", async () =>
             {
+                var subCoursesMenu = new Menu("=== Moji kolegiji ===");
                 subCoursesMenu.AddItem("Pregled studenata", async () =>
                 {
                     if (course.Students.Count == 0) Console.WriteLine("Nema upisanih studenata");
@@ -176,14 +161,14 @@ public class MenuActions
     private async Task ManageCoursesAsync()
     {
         var manageMenu = new Menu("=== Upravljanje kolegijima ===");
-        var subManageMenu = new Menu("=== Upravljanje kolegijima ===");
-        var addStudentToCourseMenu = new Menu("=== Dodavanje studenata ===");
         var courses = await _userCourseRepository.GetCoursesOverviewForProfessorAsync(_currentUser.Id);
         foreach (var course in courses)
             manageMenu.AddItem($"{course.CourseName}", async () =>
             {
+                var subManageMenu = new Menu("=== Upravljanje kolegijima ===");
                 subManageMenu.AddItem("Dodavanje studenta", async () =>
                 {
+                    var addStudentToCourseMenu = new Menu("=== Dodavanje studenata ===");
                     var students = await _userCourseRepository.GetStudentsNotEnrolledInCourseAsync(course.CourseId);
                     Console.WriteLine(students.Count);
                     foreach (var student in students)
@@ -224,5 +209,38 @@ public class MenuActions
             });
 
         await manageMenu.RunAsync();
+    }
+
+    private async Task PrivateChatAsync()
+    {
+        var chatMenu = new Menu("=== Poruke ===");
+        chatMenu.AddItem("Nova poruka", async () =>
+        {
+            var subChatMenu = new Menu("=== Novi razgovor ===");
+            var users = await _privateChatRepository.GetUsersWithoutConversationAsync(_currentUser.Id);
+            foreach (var user in users)
+                subChatMenu.AddItem($"{user.Email} - {user.Role}", async () =>
+                {
+                    await _privateChatRepository.OpenPrivateChatAsync(_currentUser.Id,  user.Id);
+                    await Task.CompletedTask;
+                });
+            
+            await subChatMenu.RunAsync();
+        });
+        chatMenu.AddItem("Moji razgovori", async () =>
+        {
+            var subChatMenu = new Menu("=== Postojeći razgovori ===");
+            var users = await _privateChatRepository.GetUsersWithConversationAsync(_currentUser.Id);
+            foreach (var user in users)
+                subChatMenu.AddItem($"{user.Email} - {user.Role}", async () =>
+                {
+                    await _privateChatRepository.OpenPrivateChatAsync(_currentUser.Id,  user.Id);
+                    await Task.CompletedTask;
+                });
+            
+            await subChatMenu.RunAsync();
+        });
+        
+        await chatMenu.RunAsync();
     }
 }

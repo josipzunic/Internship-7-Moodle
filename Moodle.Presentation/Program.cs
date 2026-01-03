@@ -17,6 +17,7 @@ services.AddScoped<IUserCourseRepository, UserCourseRepository>();
 services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 services.AddScoped<INotificationRepository, NotificationRepository>();
 services.AddScoped<IMaterialRepository, MaterialRepository>();
+services.AddScoped<IPrivateChatRepository, PrivateChatRepository>();
 
 services.AddScoped<AuthentificationService>();
 
@@ -34,9 +35,11 @@ var authService = serviceProvider.GetRequiredService<AuthentificationService>();
 var courseRepository = serviceProvider.GetRequiredService<IUserCourseRepository>();
 var enrollmentRepository = serviceProvider.GetRequiredService<IEnrollmentRepository>();
 var notificationRepository = serviceProvider.GetRequiredService<INotificationRepository>();
-var  materialRepository = serviceProvider.GetRequiredService<IMaterialRepository>();
+var materialRepository = serviceProvider.GetRequiredService<IMaterialRepository>();
+var privateChatRepository = serviceProvider.GetRequiredService<IPrivateChatRepository>();
         
-var menuActions = new MenuActions(authService, courseRepository, enrollmentRepository, notificationRepository, materialRepository);
+var menuActions = new MenuActions(authService, courseRepository, enrollmentRepository, notificationRepository, materialRepository,
+    privateChatRepository);
 
 var mainMenu = new Menu("Moodle Authentication ")
     .AddItem("Register", menuActions.RegisterAsync)
