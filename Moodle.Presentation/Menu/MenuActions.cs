@@ -11,11 +11,12 @@ public class MenuActions
     private readonly INotificationRepository _notificationRepository;
     private readonly IMaterialRepository _materialRepository;
     private readonly IPrivateChatRepository _privateChatRepository;
+    private readonly IAdminRepository _adminRepository;
     private User? _currentUser;
 
     public MenuActions(AuthentificationService authService, IUserCourseRepository userCourseRepository,  
         IEnrollmentRepository enrollmentRepository,  INotificationRepository notificationRepository,
-        IMaterialRepository materialRepository,  IPrivateChatRepository privateChatRepository)
+        IMaterialRepository materialRepository,  IPrivateChatRepository privateChatRepository, IAdminRepository adminRepository)
     {
         _authService = authService;
         _userCourseRepository = userCourseRepository;
@@ -23,6 +24,7 @@ public class MenuActions
         _notificationRepository = notificationRepository;
         _materialRepository = materialRepository;
         _privateChatRepository = privateChatRepository;
+        _adminRepository = adminRepository;
     }
 
     public async Task RegisterAsync()
@@ -80,9 +82,9 @@ public class MenuActions
                 dashboard.AddItem("Upravljanje kolegijima", ManageCoursesAsync);
                 break;
             
-            /*case Role.Admin:
+            case Role.Admin:
                 dashboard.AddItem("Upravljanje korisnicima", ManageUsersAsync);
-                break;*/
+                break;
         }
 
         await dashboard.RunAsync();
@@ -242,5 +244,54 @@ public class MenuActions
         });
         
         await chatMenu.RunAsync();
+    }
+
+    private async Task ManageUsersAsync()
+    {
+        var adminMenu = new  Menu("=== Upravljanje korisnicima ===");
+        var users = await _adminRepository.GetAllUsers(_currentUser.Id);
+
+        adminMenu.AddItem("Brisanje korisnika", async () =>
+        {
+            var subAdminMenu = new Menu("Brisanje korisnika");
+            foreach (var user in users)
+                subAdminMenu.AddItem($"{user.Email} -  {user.Role}", async () =>
+                {
+                    await _adminRepository.DeleteUserAsync(user.Id);
+                    Console.WriteLine($"korisnik {user.Id} - {user.Email} -  {user.Role} uspješno izbrisan");
+                    await Task.CompletedTask;
+                });
+            await subAdminMenu.RunAsync();
+        });
+
+        adminMenu.AddItem("Uređivanje emaila", async () =>
+        {
+            var subAdminMenu = new Menu("Uređivanje emaila");
+            foreach (var user in users)
+                subAdminMenu.AddItem($"{user.Email} -  {user.Role}", async () =>
+                {
+                    Console.Write("Unesite novu email adresu: ");
+                    var newEmail = Console.ReadLine();
+                    await _adminRepository.UpdateUserEmailAsync(user.Id,  newEmail);
+                    Console.WriteLine($"korisnik {user.Id} - {user.Email} -  {user.Role} uspješno izbrisan");
+                    await Task.CompletedTask;
+                });
+            await subAdminMenu.RunAsync();
+        });
+
+        adminMenu.AddItem("Promjena titule", async () =>
+        {
+            var subAdminMenu = new Menu("Promjena titule");
+            foreach (var user in users)
+                subAdminMenu.AddItem($"{user.Email} -  {user.Role}", async () =>
+                {
+                    await _adminRepository.UpdateUserRoleAsync(user.Id, user.Role);
+                    Console.WriteLine($"korisniku {user.Email} promijenjena je titula");
+                    await Task.CompletedTask;
+                });
+            await subAdminMenu.RunAsync();
+        });
+        
+        await adminMenu.RunAsync();
     }
 }
