@@ -13,8 +13,10 @@ services.AddDbContext<AppDbContext>(options =>
     ));
 
 services.AddScoped<IUserRepository, UserRepository>();
+services.AddScoped<ICourseRepository, CourseRepository>();
 
 services.AddScoped<AuthentificationService>();
+
 
 var serviceProvider = services.BuildServiceProvider();
 
@@ -26,40 +28,13 @@ using (var scope = serviceProvider.CreateScope())
 }
 
 var authService = serviceProvider.GetRequiredService<AuthentificationService>();
+var courseRepository = serviceProvider.GetRequiredService<ICourseRepository>();
         
-while (true)
-{
-    Console.WriteLine("1. Register");
-    Console.WriteLine("2. Login");
-    Console.WriteLine("0. Exit");
-    Console.Write("Choice: ");
+var menuActions = new MenuActions(authService, courseRepository);
 
-    var choice = Console.ReadLine();
+var mainMenu = new Menu("Moodle Authentication ")
+    .AddItem("Register", menuActions.RegisterAsync)
+    .AddItem("Login", menuActions.LoginAsync);
 
-    if (choice == "1")
-    {
-        Console.Write("Email: ");
-        var email = Console.ReadLine()!;
+await mainMenu.RunAsync();
 
-        Console.Write("Password: ");
-        var password = Console.ReadLine()!;
-
-        var success = await authService.RegisterUserAsync(email, password);
-        Console.WriteLine($"{success.Value}, {success.ValidationMessage}");
-    }
-    else if (choice == "2")
-    {
-        Console.Write("Email: ");
-        var email = Console.ReadLine()!;
-
-        Console.Write("Password: ");
-        var password = Console.ReadLine()!;
-
-        var user = await authService.LoginUserAsync(email, password);
-        if  (user.Value != null) Console.WriteLine($"{user.ValidationMessage}");
-    }
-    else if (choice == "0")
-    {
-        break;
-    }
-}
