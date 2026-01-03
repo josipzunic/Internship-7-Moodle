@@ -79,10 +79,9 @@ public class MenuActions
     {
         if (_currentUser == null) return;
 
-        var dashboard = new Menu($"==={_currentUser.Email} ===");
+        var dashboard = new Menu($"==={_currentUser.Email} ===", false, LogoutAsync);
         
         dashboard.AddItem("Privatni chat", PrivateChatAsync);
-        dashboard.AddItem("Odjava", LogoutAsync);
         
         switch (_currentUser.Role)
         {

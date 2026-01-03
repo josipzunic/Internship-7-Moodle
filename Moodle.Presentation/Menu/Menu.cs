@@ -3,11 +3,13 @@ public class Menu
     private readonly List<MenuItem> _items = new();
     private readonly string _title;
     private readonly bool _isMainMenu;
+    private readonly Func<Task>? _onExit;
 
-    public Menu(string title, bool isMainMenu = false)
+    public Menu(string title, bool isMainMenu = false, Func<Task>? onExit = null)
     {
         _title = title;
         _isMainMenu = isMainMenu;
+        _onExit = onExit;
     }
 
     public Menu AddItem(string label, Func<Task> action)
@@ -29,7 +31,7 @@ public class Menu
                 Console.WriteLine($"{i + 1}. {_items[i].Label}");
             }
             
-            Console.WriteLine(_isMainMenu ? "0. Izlaz" : "0. Povratak");
+            Console.WriteLine(_onExit != null ? "0. Odjava" : (_isMainMenu ? "0. Izlaz" : "0. Povratak"));
             Console.Write("\nOdabir: ");
 
             if (!int.TryParse(Console.ReadLine(), out int choice))
@@ -39,7 +41,12 @@ public class Menu
                 continue;
             }
 
-            if (choice == 0) break;
+            if (choice == 0)
+            {
+                if (_onExit != null)
+                    await _onExit();
+                break;
+            }
             if (choice < 1 || choice > _items.Count)
             {
                 Console.WriteLine("Nevažeći odabir");
